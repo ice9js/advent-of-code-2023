@@ -1,0 +1,8 @@
+.input-textarea {
+	border: 0;
+	font-family: var(--font-face-monospace);
+	font-size: 16px;
+	height: 100%;
+	outline: 0;
+	width: 100%;
+}

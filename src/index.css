@@ -1,0 +1,44 @@
+:root {
+  --color-neutral-0: #f9f7fc;
+  --color-neutral-5: #ecebf0;
+  --color-neutral-10: #e0dfe4;
+  --color-neutral-25: #d3d2d7;
+  --color-neutral-20: #c7c5cb;
+  --color-neutral-30: #aeacb2;
+  --color-neutral-40: #94929a;
+  --color-neutral-50: #7b7881;
+  --color-neutral-60: #635f68;
+  --color-neutral-70: #4b474f;
+  --color-neutral-80: #342f37;
+  --color-neutral-90: #1c191e;
+  --color-neutral-100: #050405;
+
+  --color-shadow: rgba( 0, 0, 0, 0.15 );
+  --color-surface: #fff;
+  --color-text: #000;
+  --color-text-inverted: #fff;
+  --color-text-subtle: var(--color-neutral-30);
+
+  --font-face-header: 'Rubik Mono One', monospace;
+  --font-face-monospace: monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-neutral-0);
+  color: var(--color-text);
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}

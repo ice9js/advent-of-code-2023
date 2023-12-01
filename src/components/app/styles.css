@@ -1,0 +1,66 @@
+.app {
+  background-color: var(--color-neutral-90);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+}
+
+.app__sidebar {
+  box-sizing: border-box;
+  color: var(--color-text-inverted);
+  padding: 20px;
+  width: 400px;
+}
+
+.app__sidebar-header {
+  color: var(--color-neutral-20);
+  font-family: var(--font-face-header);
+  font-size: 30px;
+  font-weight: bold;
+  margin-bottom: 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.app__sidebar-subheader {
+  color: var(--color-neutral-5);
+  font-family: var(--font-face-header);
+  font-size: 50px;
+  margin-top: -15px;
+  padding-right: 15px;
+  text-align: right;
+}
+
+.app__sidebar-nav-button {
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  color: var(--color-text-inverted);
+  cursor: pointer;
+  font-family: var(--font-face-header);
+  font-size: 16px;
+  padding: 20px 10px;
+  text-align: left;
+  transition: background-color .2s, color .2s;
+  width: 100%;
+}
+
+.app__sidebar-nav-button:hover,
+.app__sidebar-nav-button.is-active {
+  background-color: var(--color-neutral-0);
+  color: var(--color-text);
+}
+
+.app__view {
+  background-color: var(--color-neutral-0);
+  border-radius: 5px;
+  display: flex;
+  margin: 20px 20px 20px 0;
+  flex: 1;
+  overflow: scroll;
+}

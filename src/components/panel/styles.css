@@ -1,0 +1,50 @@
+.panel {
+	background-color: var(--color-surface);
+	border-radius: 5px;
+	box-shadow: 3px 5px 20px 5px var(--color-shadow);
+	display: flex;
+	padding: 20px;
+}
+
+.solution-panel {
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+}
+
+.solution-panel__label {
+	display: block;
+	color: var(--color-text-subtle);
+	font-family: var(--font-face-header);
+	font-size: 16px;
+	margin-bottom: 10px;
+}
+
+.solution-panel__value {
+	display: block;
+	font-family: var(--font-face-header);
+	font-size: 50px;
+	margin-top: 0;
+}
+
+.select-panel {
+	justify-content: space-around;
+}
+
+.select-panel__button {
+	background-color: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	border-radius: 0;
+	color: var(--color-text-subtle);
+	cursor: pointer;
+	font-family: var(--font-face-header);
+	padding: 3px 32px 0;
+	transition: background-color .2s, border-color .2s;
+}
+
+.select-panel__button.is-active,
+.select-panel__button:hover {
+	border-bottom: 3px solid var(--color-text);
+	color: var(--color-text);
+}
