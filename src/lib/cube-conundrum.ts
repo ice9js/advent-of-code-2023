@@ -22,7 +22,7 @@ const parseSet = ( input: string ): CubeSet => {
 	return keys.reduce(
 		( set, key, i ) => ( {
 			...set,
-			[ key ]: values[ i ],
+			[ key ]: parseInt( values[ i ], 10 ),
 		} ),
 		{ red: 0, green: 0, blue: 0 }
 	);
@@ -36,8 +36,17 @@ export const parseGames = ( input: string ): Game[] =>
 				sets: line.replace( /.*\:/, '' ).split(';').map( parseSet )
 		} ) );
 
-export const filterGames = ( games: Game[], red: number, green: number, blue: number) =>
-	games.filter( ( { sets } ) => ! sets.some( ( set ) => red < set.red || green < set.green || blue < set.blue ) );
+export const maxColor = ( red: number, green: number, blue: number ) =>
+	( { sets }: Game ) => ! sets.some( ( set ) => red < set.red || green < set.green || blue < set.blue );
 
-export const sumGameIds = ( games: Game[] ) =>
-	games.reduce( ( sum, game ) => { console.log( game ); return sum + game.id; }, 0 );
+export const minimumSet = ( game: Game ): CubeSet =>
+	game.sets.reduce(
+		( minimumSet, set ) => ( {
+			red: Math.max( minimumSet.red, set.red ),
+			green: Math.max( minimumSet.green, set.green ),
+			blue: Math.max( minimumSet.blue, set.blue ),
+		} ),
+		{ red: 0, green: 0, blue: 0 }
+	);
+
+export const setPower = ( set: CubeSet ) => set.red * set.green * set.blue;

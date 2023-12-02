@@ -1,4 +1,3 @@
-
 const SPELLED_OUT_DIGITS = [ 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine' ];
 
 type NthDigit = 'first' | 'last';
