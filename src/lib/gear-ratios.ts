@@ -1,63 +1,82 @@
-type Schematic = string[][];
-type Cell = string;
+interface Position {
+	x: number;
+	y: number;
+}
+
+interface SchematicSymbol {
+	position: Position;
+	value: string;
+}
+
+interface SchematicNumber {
+	position: Position;
+	length: number;
+	value: number;
+}
+
+interface Schematic {
+	symbols: SchematicSymbol[];
+	numbers: SchematicNumber[];
+}
+
+const parseRowNumbers = ( row: number, input: string, offset: number = 0 ): SchematicNumber[] => {
+	const number = input.slice( offset ).match( /\d+/ );
+
+	if ( ! number || number.index === undefined ) {
+		return [];
+	}
+
+	return [
+		{
+			position: { x: offset + number.index, y: row },
+			length: number[0].length,
+			value: parseInt( number[0], 10 ),
+		},
+		...parseRowNumbers( row, input, offset + number.index + number[0].length ),
+	];
+}
 
 export const parseSchematic = ( input: string ): Schematic =>
 	input
 		.split( '\n' )
-		.map( ( line ) => line.split( '' ) );
-
-const neighborCells = (schematic: Schematic, x: number, y: number ): string[] => {
-	const neighbors = [];
-
-	const fromX = Math.max( x - 1, 0 );
-	const fromY = Math.max( y - 1, 0 );
-	const toX = Math.min( x + 2, schematic[ 0 ].length );
-	const toY = Math.min( y + 2, schematic.length );
-
-	for ( let i = fromY; i < toY; i++ ) {
-		neighbors.push(
-			i === y
-				? [ ...schematic[ i ].slice( fromX, x ), ...schematic[ i ].slice( x + 1, toX ) ]
-				: schematic[ i ].slice( fromX, toX )
+		.map( ( line, y ) => ( {
+			numbers: parseRowNumbers( y, line ),
+			symbols: line
+				.split( '' )
+				.map( ( value, x ) => ( { position: { x, y }, value } ) )
+				.filter( ( { value } ) => ! value.match( /^(\d|\.)$/ ) ),
+		} ) )
+		.reduce(
+			( schematic, line ) => ( {
+				symbols: [ ...schematic.symbols, ...line.symbols ],
+				numbers: [ ...schematic.numbers, ...line.numbers ],
+			} ),
+			{ symbols: [], numbers: [] }
 		);
-	}
 
-	return neighbors.flat();
-};
+export const neighboringSymbol = ( symbol: SchematicSymbol ) =>
+	( n: SchematicNumber ): boolean =>
+		Math.abs( n.position.y - symbol.position.y ) <= 1 &&
+		n.position.x - 1 <= symbol.position.x &&
+		symbol.position.x <= n.position.x + n.length;
 
-const isNumber = ( cell: Cell ) =>
-	cell.match( /^\d$/ );
+export const partNumbers = ( schematic: Schematic ): number[] =>
+	schematic.numbers
+		.filter(
+			( number ) => schematic.symbols.some(
+				( symbol ) => neighboringSymbol( symbol )( number )
+			)
+		)
+		.map( ( { value } ) => value )
 
-const isSymbol = ( cell: Cell ) =>
-	! cell.match( /^(\d|\.)$/ );
-
-export const getPartNumbers = ( schematic: Schematic ): number[] => {
-	const partNumbers = [];
-
-	for ( let y = 0; y < schematic.length; y++ ) {
-		let hasSymbolNeighbor = false;
-		let partNumber = '';
-
-		for ( let x = 0; x < schematic[y].length; x++ ) {
-			if ( ! isNumber( schematic[y][x] ) ) {
-				if ( hasSymbolNeighbor ) {
-					partNumbers.push( partNumber );
-				}
-
-				hasSymbolNeighbor = false;
-				partNumber = '';
-
-				continue;
-			}
-
-			hasSymbolNeighbor = hasSymbolNeighbor || !! neighborCells( schematic, x, y ).filter( isSymbol ).length;
-			partNumber = `${ partNumber }${ schematic[y][x] }`;
-		}
-
-		if ( hasSymbolNeighbor ) {
-			partNumbers.push( partNumber );
-		}
-	}
-
-	return partNumbers.map( ( n ) => parseInt( n, 10 ) );
-};
+export const gearRatios = ( schematic: Schematic ): number[] =>
+	schematic.symbols
+		.filter( ( { value } ) => value === '*' )
+		.map(
+			( symbol ) =>
+				schematic.numbers
+					.filter( neighboringSymbol( symbol ) )
+					.map( ( { value } ) => value )
+		)
+		.filter( ( numbers ) => numbers.length == 2 )
+		.map( ( [ a, b ] ) => a * b );
