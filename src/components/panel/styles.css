@@ -6,6 +6,68 @@
 	padding: 20px;
 }
 
+.error-panel {
+	background-color: var(--color-error);
+}
+
+.error-panel p {
+	align-items: center;
+	display: inline-flex;
+	margin: 0;
+}
+
+.error-panel__label {
+	font-size: 32px;
+	font-weight: bold;
+	margin-right: 20px;
+}
+
+.results-panel {
+	display: flex;
+	align-items: center;
+}
+
+.results-panel__result {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	font-family: var(--font-face-header);
+	font-size: 30px;
+	margin-right: 20px;
+}
+
+.results-panel__result-label {
+	color: var(--color-text-subtle);
+	font-size: 12px;
+}
+
+.results-panel__result-value {
+	margin: 0;
+}
+
+.results-panel__submit-button {
+	background-color: var(--color-neutral-90);
+	border: 0;
+	border-radius: 5px;
+	color: var(--color-text-inverted);
+	cursor: pointer;
+	font-family: var(--font-face-header);
+	font-size: 24px;
+	height: 52px;
+	margin: auto;
+	padding-left: 16px;
+	padding-right: 16px;
+}
+
+.results-panel__submit-button:hover {
+	background-color: var(--color-neutral-70);
+}
+
+.results-panel__submit-button:disabled {
+	background-color: var(--color-neutral-30);
+}
+
+
 .solution-panel {
 	align-items: center;
 	justify-content: center;

@@ -42,6 +42,7 @@
   border-radius: 5px;
   color: var(--color-text-inverted);
   cursor: pointer;
+  display: inline-flex;
   font-family: var(--font-face-header);
   font-size: 16px;
   margin-bottom: 5px;
@@ -55,6 +56,11 @@
 .app__sidebar-nav-button.is-active {
   background-color: var(--color-neutral-0);
   color: var(--color-text);
+}
+
+.app__sidebar-nav-button-day {
+  margin-right: 10px;
+  white-space: nowrap
 }
 
 .app__view {
