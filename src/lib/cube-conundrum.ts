@@ -1,4 +1,4 @@
-
+import { sum } from './util';
 
 interface CubeSet {
 	red: number;
@@ -36,10 +36,10 @@ export const parseGames = ( input: string ): Game[] =>
 				sets: line.replace( /.*\:/, '' ).split(';').map( parseSet )
 		} ) );
 
-export const maxColor = ( red: number, green: number, blue: number ) =>
+const maxColor = ( red: number, green: number, blue: number ) =>
 	( { sets }: Game ) => ! sets.some( ( set ) => red < set.red || green < set.green || blue < set.blue );
 
-export const minimumSet = ( game: Game ): CubeSet =>
+const minimumSet = ( game: Game ): CubeSet =>
 	game.sets.reduce(
 		( minimumSet, set ) => ( {
 			red: Math.max( minimumSet.red, set.red ),
@@ -49,4 +49,16 @@ export const minimumSet = ( game: Game ): CubeSet =>
 		{ red: 0, green: 0, blue: 0 }
 	);
 
-export const setPower = ( set: CubeSet ) => set.red * set.green * set.blue;
+const setPower = ( set: CubeSet ) => set.red * set.green * set.blue;
+
+export const sumOfPossibleGames = ( games: Game[] ): number =>
+	games
+		.filter( maxColor( 12, 13, 14 ) )
+		.map( ( game ) => game.id )
+		.reduce( sum );
+
+export const sumOfPowers = ( games: Game[] ): number =>
+	games
+		.map( minimumSet )
+		.map( setPower )
+		.reduce( sum );

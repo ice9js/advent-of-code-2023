@@ -1,3 +1,5 @@
+import { sum } from './util';
+
 interface Position {
 	x: number;
 	y: number;
@@ -19,7 +21,7 @@ interface Schematic {
 	numbers: SchematicNumber[];
 }
 
-const parseRowNumbers = ( row: number, input: string, offset: number = 0 ): SchematicNumber[] => {
+const parseRowNumbers = ( input: string, row: number, offset: number = 0 ): SchematicNumber[] => {
 	const number = input.slice( offset ).match( /\d+/ );
 
 	if ( ! number || number.index === undefined ) {
@@ -32,35 +34,28 @@ const parseRowNumbers = ( row: number, input: string, offset: number = 0 ): Sche
 			length: number[0].length,
 			value: parseInt( number[0], 10 ),
 		},
-		...parseRowNumbers( row, input, offset + number.index + number[0].length ),
+		...parseRowNumbers(input, row, offset + number.index + number[0].length ),
 	];
-}
+};
 
-export const parseSchematic = ( input: string ): Schematic =>
+const parseRowSymbols = ( input: string, row: number ): SchematicSymbol[] =>
 	input
-		.split( '\n' )
-		.map( ( line, y ) => ( {
-			numbers: parseRowNumbers( y, line ),
-			symbols: line
-				.split( '' )
-				.map( ( value, x ) => ( { position: { x, y }, value } ) )
-				.filter( ( { value } ) => ! value.match( /^(\d|\.)$/ ) ),
-		} ) )
-		.reduce(
-			( schematic, line ) => ( {
-				symbols: [ ...schematic.symbols, ...line.symbols ],
-				numbers: [ ...schematic.numbers, ...line.numbers ],
-			} ),
-			{ symbols: [], numbers: [] }
-		);
+		.split( '' )
+		.map( ( value, x ) => ( { position: { x, y: row }, value } ) )
+		.filter( ( { value } ) => ! value.match( /^(\d|\.)$/ ) );
 
-export const neighboringSymbol = ( symbol: SchematicSymbol ) =>
+export const parseSchematic = ( input: string ): Schematic => ( {
+	symbols: input.split( '\n' ).map( parseRowSymbols ).flat(),
+	numbers: input.split( '\n' ).map( ( line, row ) => parseRowNumbers( line, row ) ).flat(),
+} );
+
+const neighboringSymbol = ( symbol: SchematicSymbol ) =>
 	( n: SchematicNumber ): boolean =>
 		Math.abs( n.position.y - symbol.position.y ) <= 1 &&
 		n.position.x - 1 <= symbol.position.x &&
 		symbol.position.x <= n.position.x + n.length;
 
-export const partNumbers = ( schematic: Schematic ): number[] =>
+const partNumbers = ( schematic: Schematic ): number[] =>
 	schematic.numbers
 		.filter(
 			( number ) => schematic.symbols.some(
@@ -69,7 +64,7 @@ export const partNumbers = ( schematic: Schematic ): number[] =>
 		)
 		.map( ( { value } ) => value )
 
-export const gearRatios = ( schematic: Schematic ): number[] =>
+const gearRatios = ( schematic: Schematic ): number[] =>
 	schematic.symbols
 		.filter( ( { value } ) => value === '*' )
 		.map(
@@ -80,3 +75,9 @@ export const gearRatios = ( schematic: Schematic ): number[] =>
 		)
 		.filter( ( numbers ) => numbers.length == 2 )
 		.map( ( [ a, b ] ) => a * b );
+
+export const partNumbersSum = ( schematic: Schematic ): number =>
+	partNumbers( schematic ).reduce( sum );
+
+export const gearRatiosSum = ( schematic: Schematic ): number =>
+	gearRatios( schematic ).reduce( sum );
