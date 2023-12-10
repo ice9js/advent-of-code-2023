@@ -6,6 +6,7 @@ import Cards from '../cards';
 import CubeConundrum from '../cube-conundrum';
 import GearRatios from '../gear-ratios';
 import Glider from '../glider';
+import PipeMaze from '../puzzles/pipe-maze';
 import Scratchcards from '../scratchcards';
 import Seeds from '../seeds';
 import WaitForIt from '../wait-for-it';
@@ -58,6 +59,11 @@ const PUZZLES = [
     day: 9,
     label: 'Mirage Maintenance',
     component: Glider,
+  },
+  {
+    day: 10,
+    label: 'Pipe Maze',
+    component: PipeMaze,
   }
 ];
 
@@ -80,7 +86,7 @@ const App = () => {
               onClick={ () => setCurrentView( idx ) }
             >
               <span className="app__sidebar-nav-button-day">
-                { `Day${ day < 10 ? ' ' : Math.floor( day / 10 ) }${ day }: ` }
+                { `Day${ day < 10 ? ' ' : '' }${ day }: ` }
               </span>
 
               { label }

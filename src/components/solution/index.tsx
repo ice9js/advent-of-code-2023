@@ -8,12 +8,19 @@ import './styles.css';
 
 type SolutionFunction<T> = ( data: T ) => string | number;
 
+interface VisualizationFunctionProps<T> {
+	data: T;
+};
+
+type VisualizationFunction<T> = ( props: VisualizationFunctionProps<T> ) => JSX.Element;
+
 interface SolutionProps<T> {
 	children?: ReactNode;
 	className?: string;
 	parseInput: ( input: string ) => T;
 	partOne?: SolutionFunction<T>;
 	partTwo?: SolutionFunction<T>;
+	visualization?: VisualizationFunction<T>;
 }
 
 function notSolved<T>( data: T ) {
@@ -40,8 +47,16 @@ function useSolution<T>( getResult: SolutionFunction<T> ) {
 
 export const pass = ( input: string ) => input;
 
-function Solution<T>( { children, className, parseInput, partOne, partTwo }: SolutionProps<T> ) {
+function Solution<T>( {
+	children,
+	className,
+	parseInput,
+	partOne,
+	partTwo,
+	visualization: VisualizationComponent
+}: SolutionProps<T> ) {
 	const [ input, setInput ] = useState( '' );
+	const [ data, setData ] = useState<T | null>( null );
 	const [ error, setError ] = useState<string | null>( null );
 
 	const partOneSolution = useSolution<T>( partOne || notSolved );
@@ -49,10 +64,12 @@ function Solution<T>( { children, className, parseInput, partOne, partTwo }: Sol
 
 	const handleSubmit = useCallback( ( event: SyntheticEvent ) => {
 		event.preventDefault();
+		setData( null );
 		setError( null );
 
 		try {
 			const data = parseInput( input );
+			setData( data );
 
 			partOneSolution.get( data );
 			partTwoSolution.get( data );
@@ -70,6 +87,10 @@ function Solution<T>( { children, className, parseInput, partOne, partTwo }: Sol
 				partOne={ partOneSolution.result }
 				partTwo={ partTwoSolution.result }
 			/>
+
+			{ VisualizationComponent && data !== null && (
+				<VisualizationComponent data={ data } />
+			) }
 
 			{ error && <Panel.Error label="⇢" message={ error } /> }
 			{ partOneSolution.error && <Panel.Error label="①" message={ partOneSolution.error } /> }

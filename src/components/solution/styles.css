@@ -1,7 +1,7 @@
 .solution {
 	display: grid;
 	grid-gap: 32px;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
 	grid-template-rows: auto auto auto auto 1fr;
 	height: 100%;
 	margin: 0 auto;
@@ -11,7 +11,7 @@
 }
 
 .solution .panel {
-	grid-column: 1 / span 2;
+	grid-column: 1 / span 6;
 }
 
 .solution .panel:last-child {
