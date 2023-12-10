@@ -1,91 +1,59 @@
 export type Coords = [number, number];
 
-type Pipe = string;
-
-export type Maze = Record<number, Record<number, Pipe>>;
-
-const isPipe = ( char: string ): boolean =>
-	0 <= '|-LJ7FS'.indexOf( char );
+export interface Maze {
+	tiles: string[];
+	height: number;
+	width: number;
+};
 
 export const parseMaze = ( input: string ): Maze => {
-	const points = input
+	const tiles = input
 		.split( '\n' )
 		.map( ( line ) => line.split( '' ) );
 
-	const maze: Record<number, Record<number, Pipe>> = {};
-
-	for ( let y = 0; y < points.length; y++ ) {
-		maze[y] = {};
-
-		for ( let x = 0; x < points[y].length; x++ ) {
-			if ( isPipe( points[y][x] ) ) {
-				maze[y][x] = points[y][x];
-			}
-		}
-	}
-
-	return maze;
+	return {
+		tiles: tiles.flat(),
+		height: tiles.length,
+		width: tiles[ 0 ].length,
+	};
 };
 
-const findStartingPoint = ( maze: Maze ): Coords => {
-	for ( let y in maze ) {
-		for ( let x in maze[y] ) {
-			if ( maze[y][x] === 'S' ) {
-				return [ parseInt( x, 10 ), parseInt( y, 10 ) ];
-			}
+const coordsForPosition = ( maze: Maze, position: number ): Coords =>
+	[ position % maze.width, Math.floor( position / maze.width ) ];
+
+const getTile = ( maze: Maze, [ x, y ]: Coords ): string => {
+	if ( y < 0 || maze.height <= y || x < 0 || maze.width <= x ) {
+		return '.';
+	}
+
+	return maze.tiles[ y * maze.width + x ];
+}
+
+const findStartingCoords = ( maze: Maze ): Coords => {
+	for ( let i = 0; i < maze.tiles.length; i++ ) {
+		if ( maze.tiles[i] === 'S' ) {
+			return coordsForPosition( maze, i );
 		}
 	}
 
 	throw new Error( 'Starting point not found!' );
 };
 
-const contains = ( visited: Coords[], [ x, y ]: Coords ): boolean =>
-	visited.some( ( [ vx, vy ] ) => vx === x && vy === y );
+const matchingCoords = ( [ x, y ]: Coords ) =>
+	( [ otherX, otherY ]: Coords ) => x === otherX && y === otherY;
 
-export const findLoop = ( maze: Maze ): Coords[] => {
-	let [ x, y ] = findStartingPoint( maze );
-	const visited: Coords[] = [];
+const pipeType = ( maze: Maze, [ x, y ]: Coords ): string => {
+	const tile = getTile( maze, [ x, y ] );
 
-	while ( ! contains( visited, [ x, y ] ) ) {
-		visited.push( [ x, y ] );
-
-		switch ( maze[y][x] ) {
-		case '|':
-			y = contains( visited, [x, y + 1 ] ) ? y - 1 : y + 1;
-			break;
-		case '-':
-			x = contains( visited, [x - 1, y] ) ? x + 1 : x - 1;
-			break;
-		case 'L':
-			[ x, y ] = contains( visited, [x, y - 1] ) ? [ x + 1, y ] : [ x, y - 1];
-			break;
-		case 'J':
-			[ x, y ] = contains( visited, [x, y - 1] ) ? [ x - 1, y ] : [ x, y - 1 ];
-			break;
-		case '7':
-			[ x, y ] = contains( visited, [x, y + 1] ) ? [ x - 1, y ] : [ x, y + 1 ];
-			break;
-		case 'F':
-			[ x, y ] = contains( visited, [x, y + 1] ) ? [ x + 1, y ] : [ x, y + 1 ];
-			break;
-		case 'S':
-			if ( 0 <='-J7'.indexOf( maze[ y ][ x + 1 ] ) ) {
-				x = x + 1;
-				break;
-			}
-
-			y = 0 <='|LJ'.indexOf( maze[ y - 1 ][ x ] ) ? y + 1 : y - 1;
-			break;
-		default:
-			throw new Error( `Unexpected pipe element: [${x}; ${y}]: ${maze[y][x]}` );
-		}
+	if ( tile !== 'S' ) {
+		return tile;
 	}
 
-	return visited;
-}
-
-const startingPipeType = ( maze: Maze, [x, y]: Coords ): Pipe => {
-	const neighbors = [ ( maze[ y - 1 ] || {} )[ x ], maze[ y ][ x + 1], ( maze[ y + 1 ] || {} )[ x ], maze[ y ][ x - 1] ];
+	const neighbors = [
+		'7|F'.indexOf( getTile( maze, [ x, y - 1 ] ) ),
+		'J-7'.indexOf( getTile( maze, [ x + 1, y ] ) ),
+		'J|L'.indexOf( getTile( maze, [ x, y + 1 ] ) ),
+	].map( ( result ) => 0 <= result );
 
 	if ( neighbors[ 0 ] ) {
 		if ( neighbors[ 1 ] ) {
@@ -100,93 +68,106 @@ const startingPipeType = ( maze: Maze, [x, y]: Coords ): Pipe => {
 	}
 
 	return '7';
-};
+}
 
-export const findInsideTiles = ( maze: Maze ): Coords[] => {
-	const insideTiles: Coords[] = [];
+export const findLoop = ( maze: Maze ): Coords[] => {
+	let [ x, y ] = findStartingCoords( maze );
+	const visited: Coords[] = [];
 
-	for ( let a of Object.keys( maze ) ) {
-		const y = parseInt( a, 10 );
-		const xs = Object.keys( maze[ y ] ).map( n => parseInt( n, 10 ) );
+	while ( ! visited.some( matchingCoords( [ x, y ] ) ) ) {
+		visited.push( [ x, y ] );
 
-		let previousValue = '';
-
-		for ( let x = Math.min( ...xs ); x < Math.max( ...xs ) + 1; x++ ) {
-			if ( 0 < previousValue.length || maze[ y ][ x ] ) {
-				insideTiles.push( [ x, y ] );
-			}
-
-			const value = maze[ y ][ x ] === 'S'
-				? startingPipeType( maze, [x, y])
-				: maze[ y ][ x ] || '';
-
-			switch ( value ) {
-				case 'L':
-				case 'F':
-					previousValue += value;
-					break;
-
-				case '|':
-					if ( ! previousValue.length ) {
-						previousValue = '|';
-						break;
-					}
-
-					previousValue = previousValue.slice( 0, -1 );
-					break;
-
-				case '7':
-					if ( previousValue[ previousValue.length - 1 ] === 'L' ) {
-						previousValue = previousValue[ previousValue.length - 2 ] === '|'
-							? previousValue.slice( 0, -2 )
-							: previousValue.slice( 0, -1 ) + '|';
-					}
-
-					if ( previousValue[ previousValue.length - 1 ] === 'F' ) {
-						previousValue = previousValue.slice( 0, -1 );
-					}
-
-					break;
-
-				case 'J':
-					if ( previousValue[ previousValue.length - 1 ] === 'F' ) {
-						previousValue = previousValue[ previousValue.length - 2 ] === '|'
-							? previousValue.slice( 0, -2 )
-							: previousValue.slice( 0, -1 ) + '|';
-					}
-
-					if ( previousValue[ previousValue.length - 1 ] === 'L' ) {
-						previousValue = previousValue.slice( 0, -1 );
-					}
-					break;
-			}
+		switch ( pipeType( maze, [ x, y ] ) ) {
+		case '|':
+			y = visited.some( matchingCoords( [x, y + 1 ] ) ) ? y - 1 : y + 1;
+			break;
+		case '-':
+			x = visited.some( matchingCoords( [x - 1, y] ) ) ? x + 1 : x - 1;
+			break;
+		case 'L':
+			[ x, y ] = visited.some( matchingCoords( [x, y - 1] ) ) ? [ x + 1, y ] : [ x, y - 1];
+			break;
+		case 'J':
+			[ x, y ] = visited.some( matchingCoords( [x, y - 1] ) ) ? [ x - 1, y ] : [ x, y - 1 ];
+			break;
+		case '7':
+			[ x, y ] = visited.some( matchingCoords( [x, y + 1] ) ) ? [ x - 1, y ] : [ x, y + 1 ];
+			break;
+		case 'F':
+			[ x, y ] = visited.some( matchingCoords( [x, y + 1] ) ) ? [ x + 1, y ] : [ x, y + 1 ];
+			break;
+		default:
+			throw new Error( `Unexpected pipe element: [${x}; ${y}]: ${pipeType( maze, [x, y])}` );
 		}
 	}
 
-	return insideTiles;
-};
+	return visited;
+}
 
-export const filterMaze = ( maze: Maze, coords: Coords[] ): Maze => {
-	const filtered: Maze = {};
+export const filterMaze = ( maze: Maze, coords: Coords[] ): Maze => ( {
+	...maze,
+	tiles: maze.tiles.map(
+		( tile, position ) =>
+			coords.some( matchingCoords( coordsForPosition( maze, position ) ) )
+				? tile
+				: '.'
+	),
+} );
 
-	for ( let [ x, y ] of coords ) {
-		if ( ! filtered[ y ] ) {
-			filtered[ y ] = {};
+export const findInsideTiles = ( maze: Maze, loop: Coords[] ): Coords[] => {
+	const filteredMaze = filterMaze( maze, loop ); // Remove any pipe elements that aren't part of the loop
+	const tiles: Coords[] = [];
+
+	let previousValue = '';
+
+	for ( let position = 0; position < maze.tiles.length; position++ ) {
+		const coords = coordsForPosition( maze, position );
+		const currentValue = pipeType( filteredMaze, coords );
+
+		if ( currentValue !== '.' || 0 < previousValue.length ) {
+			tiles.push( coords );
 		}
 
-		filtered[ y ][ x ] = maze[ y ][ x ];
+		switch ( currentValue ) {
+		case 'L':
+		case 'F':
+			previousValue = currentValue + previousValue;
+			break;
+		case '|':
+			previousValue = previousValue
+				? previousValue.slice( 1 )
+				: '|';
+			break;
+		case '7':
+			if ( previousValue[ 0 ] === 'L' ) {
+				previousValue = previousValue[ 1 ] === '|'
+					? previousValue.slice( 2 )
+					: '|' + previousValue.slice( 1 );
+			}
+
+			if ( previousValue[ 0 ] === 'F' ) {
+				previousValue = previousValue.slice( 1 );
+			}
+			break;
+		case 'J':
+			if ( previousValue[ 0 ] === 'F' ) {
+				previousValue = previousValue[ 1 ] === '|'
+					? previousValue.slice( 2 )
+					: '|' + previousValue.slice( 1 );
+			}
+
+			if ( previousValue[ 0 ] === 'L' ) {
+				previousValue = previousValue.slice( 1 );
+			}
+			break;
+		}
 	}
 
-	return filtered;
+	return tiles.filter( ( coords ) => ! loop.some( matchingCoords( coords ) ) );
 };
 
 export const stepsToFurthestPointInLoop = ( maze: Maze ): number =>
 	findLoop( maze ).length / 2;
 
-export const insideTilesCount = ( maze: Maze ): number => {
-	const loop = findLoop( maze );
-
-	return findInsideTiles( filterMaze( maze, loop ) )
-		.filter( ( coords ) => ! contains( loop, coords ) )
-		.length;
-};
+export const insideTilesCount = ( maze: Maze ): number =>
+	findInsideTiles( maze, findLoop( maze ) ).length;
