@@ -34,7 +34,7 @@ const neighbor = ( maze: Maze, position: number, x: number, y: number ) =>
 		? getTile( maze, position + x + ( y * maze.width ) )
 		: '.';
 
-const pipeType = ( maze: Maze, position: number ): string => {
+export const pipeType = ( maze: Maze, position: number ): string => {
 	if ( getTile( maze, position ) !== 'S' ) {
 		return getTile( maze, position );
 	}
