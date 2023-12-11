@@ -15,7 +15,7 @@ export const parseUniverse = ( input: string ): Universe =>
 		)
 		.flat();
 
-const expand = ( universe: Universe ): Universe => {
+const expand = ( universe: Universe, factor: number = 2 ): Universe => {
 	const xMax = Math.max( ...universe.map( ( [ x ] ) => x ) )
 	const yMax = Math.max( ...universe.map( ( [ _, y ] ) => y ) );
 
@@ -27,8 +27,8 @@ const expand = ( universe: Universe ): Universe => {
 		.filter( ( row ) => ! universe.some( ( [ _, y ] ) => y === row ) );
 
 	return universe.map( ( [ x, y ] ) => [
-		x + emptyColumns.filter( ( row ) => row < x ).length,
-		y + emptyRows.filter( ( row ) => row < y ).length,
+		x + ( factor - 1 ) * emptyColumns.filter( ( row ) => row < x ).length,
+		y + ( factor - 1 ) * emptyRows.filter( ( row ) => row < y ).length,
 	] );
 };
 
@@ -49,5 +49,10 @@ const distance = ( [ fromX, fromY ]: Galaxy, [ toX, toY ]: Galaxy ): number =>
 
 export const sumOfDistancesBetweenAllGalaxies = ( universe: Universe ): number =>
 	galaxyPairs( expand( universe ) )
+		.map( ( [ a, b ] ) => distance( a, b ) )
+		.reduce( sum );
+
+export const partTwo = ( universe: Universe ): number =>
+	galaxyPairs( expand( universe, 1000000 ) )
 		.map( ( [ a, b ] ) => distance( a, b ) )
 		.reduce( sum );

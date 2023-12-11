@@ -53,12 +53,12 @@ export const ghostSteps = ( map: Map ): number => {
 	let nodes: string[] = Object.keys( map.nodes )
 		.reduce( ( n: string[], c: string ): string[] => c[2] === 'A' ? [ ...n, c ] : n, [] );
 
-	let aa = nodes.map( () => 0 );
+	let loops = nodes.map( () => 0 );
 
-	while ( ! aa.every( ( n ) => n > 0 ) ) {
+	while ( ! loops.every( ( n ) => n > 0 ) ) {
 		nodes = nodes.map( ( n, j ) => {
-			if ( n[2] === 'Z' && aa[j] === 0 ) {
-				aa[j] = i;
+			if ( n[2] === 'Z' && loops[j] === 0 ) {
+				loops[j] = i;
 			}
 
 			return map.nodes[ n ][ map.instructions[ i % map.instructions.length ] ];
@@ -67,5 +67,5 @@ export const ghostSteps = ( map: Map ): number => {
 		i++;
 	}
 
-	return aa.reduce( lcm );
+	return loops.reduce( lcm );
 };

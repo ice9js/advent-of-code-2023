@@ -9,6 +9,7 @@ import Glider from '../glider';
 import PipeMaze from '../puzzles/pipe-maze';
 import Scratchcards from '../scratchcards';
 import Seeds from '../seeds';
+import Universe from '../puzzles/universe';
 import WaitForIt from '../wait-for-it';
 import Wasteland from '../wasteland';
 
@@ -64,7 +65,12 @@ const PUZZLES = [
     day: 10,
     label: 'Pipe Maze',
     component: PipeMaze,
-  }
+  },
+  {
+    day: 11,
+    label: 'Cosmic Expansion',
+    component: Universe,
+  },
 ];
 
 const App = () => {
