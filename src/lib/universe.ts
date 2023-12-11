@@ -47,12 +47,13 @@ const galaxyPairs = ( universe: Universe ): [ Galaxy, Galaxy ][] => {
 const distance = ( [ fromX, fromY ]: Galaxy, [ toX, toY ]: Galaxy ): number =>
 	Math.abs( toX - fromX ) + Math.abs( toY - fromY );
 
-export const sumOfDistancesBetweenAllGalaxies = ( universe: Universe ): number =>
-	galaxyPairs( expand( universe ) )
+const sumOfDistances = ( universe: Universe ): number =>
+	galaxyPairs( universe )
 		.map( ( [ a, b ] ) => distance( a, b ) )
 		.reduce( sum );
 
-export const partTwo = ( universe: Universe ): number =>
-	galaxyPairs( expand( universe, 1000000 ) )
-		.map( ( [ a, b ] ) => distance( a, b ) )
-		.reduce( sum );
+export const sumWithSlowExpansion = ( universe: Universe ): number =>
+	sumOfDistances( expand( universe ) );
+
+export const sumWithRapidExpansion = ( universe: Universe ): number =>
+	sumOfDistances( expand( universe, 1000000 ) );
