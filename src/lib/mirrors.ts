@@ -62,8 +62,12 @@ const isVerticalMirror = ( pattern: Pattern, x: number ): boolean => {
 	return true;
 };
 
-const findVerticalMirror = ( pattern: Pattern ): number => {
+const findVerticalMirror = ( pattern: Pattern, skip: number = 0 ): number => {
 	for ( let x = 1; x < pattern.width; x++ ) {
+		if ( x === skip ) {
+			continue;
+		}
+
 		if ( isVerticalMirror( pattern, x ) ) {
 			return x;
 		}
@@ -72,9 +76,33 @@ const findVerticalMirror = ( pattern: Pattern ): number => {
 	return 0;
 };
 
+const fixSmudge = ( pattern: Pattern ): number => {
+	const previousVertical = findVerticalMirror( pattern );
+	const previousHorizontal = findVerticalMirror( transpose( pattern ) );
+
+	for ( let n = 0; n < pattern.values.length; n++ ) {
+		const fixedPattern = ( {
+			...pattern,
+			values: pattern.values.slice( 0, n ) + ( pattern.values[n] === '#' ? '.' : '#' ) + pattern.values.slice( n + 1 )
+		} );
+
+		const newMirror = findVerticalMirror( fixedPattern, previousVertical ) || findVerticalMirror( transpose( fixedPattern ), previousHorizontal ) * 100;
+
+		if ( newMirror ) {
+			return newMirror;
+		}
+	}
+
+	return 0;
+};
+
 export const partOne = ( patterns: Pattern[] ): number =>
 	patterns
-		.map( ( pattern ) =>
-			findVerticalMirror( pattern ) + ( findVerticalMirror( transpose( pattern ) ) * 100 )
-		)
+		.map( ( pattern ) => findVerticalMirror( pattern ) || findVerticalMirror( transpose( pattern ) ) * 100 )
+		.reduce( sum );
+
+export const partTwo = ( patterns: Pattern[] ): number =>
+	patterns
+		.map( ( pattern ) => fixSmudge
+			( pattern ) )
 		.reduce( sum );
