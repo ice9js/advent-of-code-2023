@@ -16,7 +16,7 @@ const parseRow = ( input: string ): Row => {
 export const parseRows = ( input: string ): Row[] =>
 	input.split( '\n' ).map( parseRow );
 
-function memo( callback: GeneratorFn ) {
+const memo = ( callback: GeneratorFn ) => {
 	const results = new Map<string, number>();
 
 	return ( springs: string, checksums: number[] ): number => {
@@ -28,7 +28,7 @@ function memo( callback: GeneratorFn ) {
 
 		return results.get( key )!;
 	};
-}
+};
 
 const generateArrangements = memo( ( springs: string, checksums: number[] ): number => {
 	if ( ! checksums.length ) {
