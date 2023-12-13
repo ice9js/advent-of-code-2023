@@ -1,46 +1,69 @@
 import { sum } from './util';
 
+type GeneratorFn = ( springs: string, checksums: number[] ) => number;
+
 type Row = [ string, number[] ];
 
 const parseRow = ( input: string ): Row => {
-	const [ springs, groups ] = input.split( ' ' );
+	const [ springs, checksums ] = input.split( ' ' );
 
 	return [
 		springs,
-		groups.split( ',' ).map( ( n ) => parseInt( n, 10 ) ),
+		checksums.split( ',' ).map( ( n ) => parseInt( n, 10 ) ),
 	];
 };
 
 export const parseRows = ( input: string ): Row[] =>
 	input.split( '\n' ).map( parseRow );
 
-const springGroups = ( springs: string ): number[] =>
-	( springs.match( /\#+/g ) || [] ).map( ( group ) => group.length );
+function memo( callback: GeneratorFn ) {
+	const results = new Map<string, number>();
 
-const generateArrangements = ( springs: string, checksums: number[], result: string = '' ): string[] => {
-	const groups = springGroups( result );
+	return ( springs: string, checksums: number[] ): number => {
+		const key = `${ springs }|${ checksums.join( ',' ) }`;
 
-	if ( ! groups.every( ( group, i ) => group <= checksums[i] ) ) {
-		return [];
+		if ( ! results.has( key ) ) {
+			results.set( key, callback( springs, checksums ) );
+		}
+
+		return results.get( key )!;
+	};
+}
+
+const generateArrangements = memo( ( springs: string, checksums: number[] ): number => {
+	if ( ! checksums.length ) {
+		return springs.indexOf( '#' ) < 0 ? 1 : 0;
 	}
 
-	if ( springs === '' ) {
-		return checksums.every( ( checksum, i ) => checksum === groups[i] )
-			? [ result ]
-			: [];
+	if ( ! springs ) {
+		return 0;
+	}
+
+	if ( springs[0] === '#' ) {
+		if ( ! springs.match( new RegExp( `^[#?]{${ checksums[0] }}([\.?].*)?$` ) ) ) {
+			return 0;
+		}
+
+		return generateArrangements( springs.slice( checksums[0] + 1 ), checksums.slice( 1 ) );
 	}
 
 	if ( springs[0] === '?' ) {
-		return [
-			...generateArrangements( springs.slice( 1 ), checksums, result + '.' ),
-			...generateArrangements( springs.slice( 1 ), checksums, result + '#' ),
-		];
+		return generateArrangements( '#' + springs.slice( 1 ), checksums )
+			+ generateArrangements( '.' + springs.slice( 1 ), checksums );
 	}
 
-	return generateArrangements( springs.slice( 1 ), checksums, result + springs[ 0 ] );
-};
+	return generateArrangements( springs.replace( /\.+/, '' ), checksums );		
+} );
 
 export const countPossibleSpringArrangements = ( rows: Row[] ): number =>
 	rows
-		.map( ( [ springs, checksums ] ) => generateArrangements( springs, checksums ).length )
+		.map( ( [ springs, checksums ] ) => generateArrangements( springs, checksums ) )
 		.reduce( sum );
+
+export const countPossibleUnfoldedArrangements = ( rows: Row[] ): number =>
+	countPossibleSpringArrangements(
+		rows.map( ( [ springs, checksums ] ) => [
+			[ springs, springs, springs, springs, springs ].join( '?' ),
+			[ ...checksums, ...checksums, ...checksums, ...checksums, ...checksums ]
+		] )
+	);
