@@ -6,6 +6,8 @@ import Cards from '../cards';
 import CubeConundrum from '../cube-conundrum';
 import GearRatios from '../gear-ratios';
 import Glider from '../glider';
+import HotSprings from '../puzzles/hot-springs';
+import Mirrors from '../puzzles/mirrors';
 import PipeMaze from '../puzzles/pipe-maze';
 import Scratchcards from '../scratchcards';
 import Seeds from '../seeds';
@@ -71,6 +73,16 @@ const PUZZLES = [
     label: 'Cosmic Expansion',
     component: Universe,
   },
+  {
+    day: 12,
+    label: 'Hot Springs',
+    component: HotSprings,
+  },
+  {
+    day: 13,
+    label: 'Mirrors',
+    component: Mirrors,
+  }
 ];
 
 const App = () => {
