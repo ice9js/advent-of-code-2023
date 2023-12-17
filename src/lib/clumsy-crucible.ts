@@ -10,8 +10,8 @@ interface HeatLossMap {
 type Direction = '↑' | '↓' | '←' | '→';
 
 type VisitedNode = Record<string, Path>;
-	// directions: string[];
-// }
+
+type CrucibleStrategy = ( map: HeatLossMap, path: Path, next: number ) => boolean;
 
 export const parseHeatLossMap = ( input: string ): HeatLossMap => {
 	const values = input
@@ -36,14 +36,12 @@ const neighbors = ( map: HeatLossMap, position: number ): number[] => [
 	( position + 1 ) % map.width ? position + 1 : -1,
 ].filter( ( number ) => 0 <= number && number < map.values.length );
 
-const isValidContinuation = ( map: HeatLossMap, path: Path ) =>
-	( next: number ): boolean => {
-		return ! path.includes( next ) &&
+const isValidContinuation = ( map: HeatLossMap, path: Path, next: number ): boolean =>
+		! path.includes( next ) &&
 		! ( path[ 0 ] === next - 1 && path[ 1 ] === next - 2 && path[ 2 ] === next - 3 && path[ 3 ] === next - 4 ) &&
 		! ( path[ 0 ] === next + 1 && path[ 1 ] === next + 2 && path[ 2 ] === next + 3 && path[ 3 ] === next + 4 ) &&
 		! ( path[ 0 ] === next - map.width && path[ 1 ] === next - 2 * map.width && path[ 2 ] === next - 3 * map.width && path[ 3 ] === next - 4 * map.width ) &&
 		! ( path[ 0 ] === next + map.width && path[ 1 ] === next + 2 * map.width && path[ 2 ] === next + 3 * map.width && path[ 3 ] === next + 4 * map.width );
-	};
 
 const getDirection = ( map: HeatLossMap, from: number, to: number ): Direction => {
 	switch ( to - from ) {
@@ -109,7 +107,23 @@ const take = ( queue: Path[][] ): Path => {
 	return [];
 };
 
-const shortestPath = ( map: HeatLossMap, from: number, to: number ): Path => {
+
+const isValidContinuationExt = ( map: HeatLossMap, path: Path, next: number ): boolean => {
+	const currentDirection = dirdirdir( map, [ next, ...path ] );
+	const previousDirection = dirdirdir( map, path.slice( currentDirection.length - 1 ) );
+
+	if ( 10 < currentDirection.length ) {
+		return false;
+	}
+
+	if ( ! previousDirection ) {
+		return true;
+	}
+
+	return 4 <= previousDirection.length && previousDirection.length <= 10;
+};
+
+const shortestPath = ( map: HeatLossMap, from: number, to: number, isValidNext: CrucibleStrategy ): Path => {
 	const visited: VisitedNode[] = [];
 	const queue: Path[][] = [];
 
@@ -122,9 +136,6 @@ const shortestPath = ( map: HeatLossMap, from: number, to: number ): Path => {
 			continue;
 		}
 
-		// console.log( results[ current ] );
-		// console.log( `${ dirdirdir( map, path.slice( 0, 4 ) ) } ${ path[ 0 ] }` );
-
 		if ( path[ 0 ] === to ) {
 			return path.reverse().slice( 1 );
 		}
@@ -133,7 +144,7 @@ const shortestPath = ( map: HeatLossMap, from: number, to: number ): Path => {
 
 		for ( let next of neighbors( map, path[ 0 ] ) ) {
 			if (
-				! isValidContinuation( map, path )( next ) ||
+				! isValidNext( map, path, next ) ||
 				hasVisited( visited, next, dirdirdir( map, [ next, ...path ] ) )
 			) {
 				continue;
@@ -146,14 +157,10 @@ const shortestPath = ( map: HeatLossMap, from: number, to: number ): Path => {
 	return [];
 }
 
-export const minimumHeatLoss = ( map: HeatLossMap ): number => {
-	const path = shortestPath( map, 0, map.values.length - 1 );
-	// const path = shortest( map, 0, map.values.length - 1);
+export const minimumHeatLoss = ( map: HeatLossMap ): number =>
+	heatLoss( map, shortestPath( map, 0, map.values.length - 1, isValidContinuation ) );
 
-	console.log( map.width );
-	console.log( path );
-	console.log( path.map( ( n ) => map.values[ n ] ).reverse() );
-	return heatLoss( map, path );
+// 904
+export const minimumHeatLossPartTwo = ( map: HeatLossMap ): number =>
+	heatLoss( map, shortestPath( map, 0, map.values.length - 1, isValidContinuationExt ) );
 
-	// return heatLoss( map, path );
-};
