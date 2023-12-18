@@ -1,104 +1,141 @@
-import { parseMaze, findLoop, findInsideTiles } from './pipe-maze';
 import { sum } from './util';
 
-interface Position {
+interface Point {
 	x: number;
 	y: number;
 }
 
+type Block = [ Point, Point, Point, Point ];
+
+type Segment = [ Point, Point ];
+
+type Polygon = Point[];
+
+type Direction = { x: 1, y: 0 } | { x: -1, y: 0 } | { x: 0, y: 1 } | { x: 0, y: -1 };
+
 interface Instruction {
-	direction: string;
+	direction: Direction;
 	length: number;
-	hexCode: string;
 }
 
-export const parseInstructions = ( input: string ): Instruction[] =>
-	input
-		.split( '\n' )
-		.map( ( line ) => {
-			const [ _, direction, length, hexCode ] = line.match( /(\w)\s(\d+)\s\((\#.+)\)/ )!;
+type ParseLineFn = ( line: string ) => Instruction;
 
-			return {
-				direction,
-				length: parseInt( length, 10 ),
-				hexCode,
-			};
-		} );
-
-const toPipeMazeInput = ( instructions: Instruction[] ): string => {
-	const maze: string[][] = [];
-
-	maze[ 200 ] = [];
-	maze[ 200 ][ 200 ] = 'S';
-
-	let previous = 'R';
-	let previousPosition = { x: 200, y: 200 };
-	let position: Position = { x: 200, y: 200 };
-
-	for ( let current of instructions ) {
-		const direction = {
-			x: current.direction === 'R' ? 1 : ( current.direction === 'L' ? -1 : 0),
-			y: current.direction === 'D' ? 1 : ( current.direction === 'U' ? -1 : 0),
-		};
-
-		// I remember the previous
-
-		for ( let i = 0; i < current.length; i++ ) {
-			let piece = direction.x ? '-' : '|'; // no corners
-
-			previousPosition.x = position.x;
-			previousPosition.y = position.y;
-
-			position.x += direction.x;
-			position.y += direction.y;
-
-			if ( i === 0 && maze[ previousPosition.y ][ previousPosition.x ] !== 'S' ) {
-				switch ( previous ) {
-				case 'R':
-					maze[ previousPosition.y ][ previousPosition.x ] = current.direction === 'D' ? '7' : 'J';
-					break;
-				case 'L':
-					maze[ previousPosition.y ][ previousPosition.x ] = current.direction === 'D' ? 'F' : 'L';
-					break;
-				case 'D':
-					maze[ previousPosition.y ][ previousPosition.x ] = current.direction === 'R' ? 'L' : 'J';
-					break;
-				case 'U':
-					maze[ previousPosition.y ][ previousPosition.x ] = current.direction === 'R' ? 'F' : '7';
-					break;
-				}
-			}
-
-			if ( ! maze[ position.y ] ) {
-				maze[ position.y ] = [];
-			}
-
-			if ( maze[ position.y ][ position.x ] !== 'S' ) {
-				maze[ position.y ][ position.x ] = piece;
-			}
-		}
-
-		previous = current.direction;
+const parseDirection = ( char: string ): Direction => {
+	switch ( char ) {
+	case 'R':
+	case '0':
+		return { x: 1, y: 0 };
+	case 'D':
+	case '1':
+		return { x: 0, y: 1 };
+	case 'L':
+	case '2':
+		return { x: -1, y: 0 };
+	case 'U':
+	case '3':
+		return { x: 0, y: -1 };
 	}
 
-	const width = maze.reduce( ( max, row ) => Math.max( max, row.length ), 0 );
-
-	return [ ...maze ]
-		// .filter( ( row ) => row.length )
-		.map( ( _, y ) => [ ...Array( width ) ].map( ( c, x ) =>  ( maze[ y ] && maze[ y ][ x ] ) || '.' ).join( '' ) )
-		.join( '\n' );
+	throw new Error( `Invalid direction character: ${ char }` );
 };
 
-export const partOne = ( instructions: Instruction[] ): number => {
-	const mazeInput = toPipeMazeInput( instructions );
-	console.log( mazeInput );
+const plainInstruction = ( line: string ): Instruction => {
+	const [ _, direction, length ] = line.match( /(\w)\s(\d+)/ )!;
 
-	const maze = parseMaze( mazeInput );
-
-
-	const loop = findLoop( maze );
-
-	const insideTiles = findInsideTiles( maze, loop );
-
-	return loop.length + insideTiles.length;
+	return {
+		direction: parseDirection( direction ),
+		length: parseInt( length, 10 ),
+	};
 };
+
+const hexInstruction = ( line: string ): Instruction => {
+	const [ _, length, direction ] = line.match( /\w\s\d+\s\(\#(.+)(\d)\)/ )!;
+
+	return {
+		direction: parseDirection( direction ),
+		length: parseInt( length, 16 ),
+	};
+}
+
+const parseInstructions = ( input: string, strategy: ParseLineFn ): Instruction[] =>
+	input.split( '\n' ).map( strategy );
+
+const polygon = ( [ current, ...instructions ]: Instruction[], position: Point = { x: 0, y: 0 } ): Polygon => {
+	if ( ! current ) {
+		return [];
+	}
+
+	const nextPosition = {
+		x: position.x + current.direction.x * current.length,
+		y: position.y + current.direction.y * current.length,
+	};
+
+	return [ position, ...polygon( instructions, nextPosition ) ];
+};
+
+const isInsidePolygon = ( polygon: Polygon, { x, y }: Point ) => {
+	let inside = false;
+
+	for ( let i = 0; i < polygon.length; i++ ) {
+		const current = polygon[ i ];
+		const previous = polygon[ ( polygon.length + i - 1 ) % polygon.length ];
+
+		if (
+			( y < current.y ) != ( y < previous.y ) &&
+			( x < ( previous.x - current.x ) * ( y - current.y ) / ( previous.y - current.y ) + current.x )
+		) {
+			inside = ! inside;
+		}
+	}
+
+	return inside;
+};
+
+const offsetPolygon = ( polygon: Polygon, offset: number ): Polygon =>
+	polygon
+		.map( ( { x, y } ) => [
+			{ x: x + offset, y: y + offset },
+			{ x: x - offset, y: y + offset },
+			{ x: x + offset, y: y - offset },
+			{ x: x - offset, y: y - offset },
+		] )
+		.map( ( points ) => {
+			const outside = points.filter( ( point ) => ! isInsidePolygon( polygon, point ) );
+
+			if ( outside.length === 1 ) {
+				return outside[ 0 ];
+			}
+
+			return outside.filter( ( point ) =>
+				outside.some( ( p ) => p.x === point.x && p.y !== point.y ) &&
+				outside.some( ( p ) => p.x !== point.x && p.y === point.y )
+			)[ 0 ];
+		} )
+		.reduce(
+			( newPolygon: Polygon, point: Point ): Polygon => {
+				if ( newPolygon.some( ( { x, y } ) => x === point.x && y === point.y ) ) {
+					return newPolygon;
+				}
+
+				return [ ...newPolygon, point ];
+			},
+			[]
+		);
+
+const segments = ( polygon: Polygon ): Segment[] =>
+	polygon.map( ( point, i ) => [ point, polygon[ ( i + 1 ) % polygon.length ] ] );
+
+const area = ( polygon: Polygon ): number =>
+	Math.abs(
+		segments( polygon )
+			.map( ( [ a, b ] ) => a.x * b.y - b.x * a.y )
+			.reduce( sum )
+	) / 2;
+
+const trenchArea = ( strategy: ParseLineFn ) =>
+	( input: string ): number =>
+		area( offsetPolygon( polygon( parseInstructions( input, strategy ) ), 0.5 ) );
+
+export const partOne = trenchArea( plainInstruction );
+
+export const partTwo = trenchArea( hexInstruction );
