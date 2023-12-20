@@ -1,4 +1,4 @@
-
+import { lcm } from './util';
 
 type Pulse = 0 | 1;
 
@@ -52,6 +52,9 @@ export const parseNetwork = ( input: string ): Network => {
 	);
 };
 
+let loops: Record<string, number> = {};
+let i = 0;
+
 const processMessage = ( module: Module, { from, pulse }: Message ): Message[] => {
 	if ( module.type === '%' ) {
 		if ( pulse ) {
@@ -69,6 +72,16 @@ const processMessage = ( module: Module, { from, pulse }: Message ): Message[] =
 
 	if ( module.type === '&' ) {
 		module.state[ module.inputs.indexOf( from ) ] = pulse;
+
+		if ( module.state.every( ( n ) => n === 0 ) ) {
+			if ( ! loops[ module.address ] ) {
+				loops[ module.address ] = i;
+			}
+
+			if ( i % loops[ module.address ] !== 0 ) {
+				console.log( module.address + ' ' + i + ' ' + ( i - loops[ module.address ] ) );
+			}
+		}
 
 		return module.outputs.map( ( to ) => ( {
 			from: module.address,
@@ -108,12 +121,55 @@ export const partOne = ( network: Network ) => {
 	let low = 0;
 	let high = 0;
 
-	for ( let i = 0; i < 1000; i++ ) {
+	console.log( network );
+
+	for ( let module of Object.values( network ) ) {
+		if ( module.type === '&' ) {
+			loops[ module.address ] = 0;
+		}
+	}
+
+	for ( i = 0; i < 10000; i++ ) {
 		const result = countSignals( network, { from: '', to: 'broadcaster', pulse: 0 } );
 
 		low += result[ 0 ];
 		high += result[ 1 ];
 	}
 
+	console.log( loops );
+
 	return low * high;
 }
+
+const rxReached = ( network: Network, initialMessage: Message ): boolean => {
+	const messageQueue = [ initialMessage ];
+
+	while ( messageQueue.length ) {
+		const current = messageQueue.shift()!
+
+		if ( current.to === 'rx' ) {
+			if ( current.pulse === 0 ) {
+				return true;
+			}
+		}
+
+		if ( network[ current.to ] ) {
+			processMessage( network[ current.to ], current )
+				.forEach( ( message ) => messageQueue.push( message ) );
+		}
+	}
+
+	return false;
+}
+
+export const partTwo = ( network: Network ) => {
+	let i = 1;
+
+	console.log( network );
+
+	// while ( ! rxReached( network, { from: '', to: 'broadcaster', pulse: 0 } ) ) i++;
+
+	return i;
+}
+
+console.log( [ 3917, 4013, 3793, 4051 ].reduce( lcm ) );
