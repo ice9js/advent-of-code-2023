@@ -1,5 +1,6 @@
 interface PlotMap {
 	values: string[];
+	height: number;
 	width: number;
 }
 
@@ -8,6 +9,7 @@ export const parsePlotMap = ( input: string ): PlotMap => ( {
 		.split( '\n' )
 		.map( ( line ) => line.split( '' ) )
 		.flat(),
+	height: input.split( '\n' ).length,
 	width: input.match( /^.*/ )![ 0 ].length,
 } );
 
@@ -63,4 +65,17 @@ const findPlotsInNSteps = ( map: PlotMap, startPlot: number, steps: number ): nu
 };
 
 export const partOne = ( map: PlotMap ): number =>
-	findPlotsInNSteps( map, map.values.indexOf( 'S' ), 64 ).length;
+	Object.values( findPlotsInNSteps( map, map.values.indexOf( 'S' ), 64 ) ).length;
+
+// Solved based on this explanation: https://github.com/villuna/aoc23/wiki/A-Geometric-solution-to-advent-of-code-2023,-day-21
+export const partTwo = ( map: PlotMap ): number => {
+	const nEven = findPlotsInNSteps( map, map.values.indexOf( 'S' ), 132 ).length;
+	const nOdd = findPlotsInNSteps( map, map.values.indexOf( 'S' ), 131 ).length;
+
+	const evenCorners = nEven - findPlotsInNSteps( map, map.values.indexOf( 'S' ), 64 ).length;
+	const oddCorners = nOdd - findPlotsInNSteps( map, map.values.indexOf( 'S' ), 65 ).length;
+
+	const n = ( 26501365 - 65 ) / 131;
+
+	return ( ( n + 1 ) * ( n + 1 ) * nOdd ) + ( n * n * nEven ) - ( n + 1 ) * oddCorners + n * evenCorners;
+};
