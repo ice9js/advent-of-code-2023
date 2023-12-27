@@ -1,34 +1,22 @@
 import { sum } from './util';
 
+const PLAIN_DIGITS = [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' ];
 const SPELLED_OUT_DIGITS = [ 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine' ];
-
-type NthDigit = 'first' | 'last';
 
 export const parseInput = ( input: string ): string[] =>
 	input.split( '\n' );
 
-const matchDigit = ( input: string, digit: NthDigit, allowSpelledOutDigits: boolean ): string => {
-	const prefix = digit === 'last' ? '.*' : '';
-	const expr = [ '\\d' ].concat( allowSpelledOutDigits ? SPELLED_OUT_DIGITS : [] ).join( '|' );
+const matchRowNumbers = ( patterns: string[] ) => ( line: string ): number => {
+	const first = line.match( new RegExp( `(${ patterns.join( '|' ) })` ) )![ 1 ];
+	const last = line.match( new RegExp( `.*(${ patterns.join( '|' ) })` ) )![ 1 ];
 
-	const result = input.match( new RegExp( `${ prefix }(${ expr })`) );
-
-	if ( ! result ) {
-		throw new Error( `The following input line doesn't contain any digits: ${ input }.` );
-	}
-
-	return ( SPELLED_OUT_DIGITS.indexOf( result[1] ) + 1 || result[1] ).toString();
+    return ( ( patterns.indexOf( first ) + 1 ) % 10 ) * 10 + ( patterns.indexOf( last ) + 1 ) % 10;
 };
 
-const getRowDigits = ( allowSpelledOutDigits: boolean = false ) => ( input: string ): number =>
-	parseInt( matchDigit( input, 'first', allowSpelledOutDigits ) + matchDigit( input, 'last', allowSpelledOutDigits ), 10 );
-
-export const sumOfDigits = ( lines: string[] ): number =>
+export const sumOfDigits = ( lines: string[], patterns: string[] = PLAIN_DIGITS ): number =>
 	lines
-		.map( getRowDigits() )
+		.map( matchRowNumbers( patterns ) )
 		.reduce( sum );
 
 export const sumIncludingSpelledDigits = ( lines: string[] ): number =>
-	lines
-		.map( getRowDigits( true ) )
-		.reduce( sum );
+	sumOfDigits( lines, [ ...PLAIN_DIGITS, ...SPELLED_OUT_DIGITS ] );
