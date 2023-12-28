@@ -1,5 +1,4 @@
 import { findPath } from '../util/dijkstra';
-import { sum } from './util';
 
 type Position = number;
 
@@ -24,9 +23,7 @@ export const parseHeatLossMap = ( input: string ): HeatLossMap => {
 };
 
 const heatLoss = ( map: HeatLossMap, path: Path ) =>
-	path
-		.map( ( position ) => map.values[ position ] )
-		.reduce( sum, 0 );
+	path.reduce( ( sum, position ) => sum + map.values[ position ], 0 );
 
 const neighborPositions = ( map: HeatLossMap, position: Position ): Position[] => [
 	position - map.width,
@@ -36,22 +33,22 @@ const neighborPositions = ( map: HeatLossMap, position: Position ): Position[] =
 ].filter( ( number ) => 0 <= number && number < map.values.length );
 
 const nextPositions = ( map: HeatLossMap, isValidPath: CrucibleConstraints ) =>
-	( [ currentPosition, ...path ]: Path ) =>
-		neighborPositions( map, currentPosition )
-			.filter( ( maybeNextPosition ) => isValidPath( [ maybeNextPosition, currentPosition, ...path ] ) );
+	( path: Path ) =>
+		neighborPositions( map, path[ 0 ] )
+			.filter( ( maybeNextPosition ) => isValidPath( [ maybeNextPosition ].concat( path ) ) );
 
-const directionHistory = ( map: HeatLossMap, path: number[], history: number[] = [] ): number[] => {
-	if ( path.length < 2 ) {
-		return history;
+const directionHistory = ( map: HeatLossMap, path: number[] ): number[] => {
+	const history: number[] = [];
+
+	for ( let i = 0; i < path.length - 1; i++ ) {
+		if ( history.length && path[ i ] - path[ i + 1 ] !== history[ i - 1 ] ) {
+			return history;
+		}
+
+		history.push( path[ i ] - path[ i + 1 ] );
 	}
 
-	const direction = path[ 0 ] - path[ 1 ];
-
-	if ( history.length && direction !== history[ 0 ] ) {
-		return history;
-	}
-
-	return directionHistory( map, path.slice( 1 ), [ direction, ...history ] );
+	return history;
 };
 
 const minHeatLoss = ( map: HeatLossMap, constraints: CrucibleConstraints ) => {
@@ -70,16 +67,16 @@ const isValidCruciblePath = ( map: HeatLossMap ) => ( path: Path ) =>
 	directionHistory( map, path ).length <= 3;
 
 const isValidUltraCruciblePath = ( map: HeatLossMap ) => ( path: Path ) => {
-	const currentDirection = directionHistory( map, path );
-	const previousDirection = directionHistory( map, path.slice( currentDirection.length ) );
+	const currentDirection = directionHistory( map, path ).length;
+	const previousDirection = directionHistory( map, path.slice( currentDirection ) ).length;
 
 	// The last stretch to the end must be at least 4 units long too!
 	if ( path[ 0 ] === map.values.length - 1 ) {
-		return 4 <= currentDirection.length;
+		return 4 <= currentDirection;
 	}
 
-	return currentDirection.length <= 10 &&
-		( ! previousDirection.length || 4 <= previousDirection.length );
+	return currentDirection <= 10 &&
+		( ! previousDirection || 4 <= previousDirection );
 };
 
 export const minimumHeatLoss = ( map: HeatLossMap ) =>
