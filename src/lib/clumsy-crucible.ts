@@ -54,13 +54,8 @@ const directionHistory = ( map: HeatLossMap, path: number[], history: number[] =
 	return directionHistory( map, path.slice( 1 ), [ direction, ...history ] );
 };
 
-const minHeatLoss = (
-	map: HeatLossMap,
-	from: Position,
-	to: Position,
-	constraints: CrucibleConstraints
-) => {
-	const minHeatLossPath = findPath( from, to, {
+const minHeatLoss = ( map: HeatLossMap, constraints: CrucibleConstraints ) => {
+	const minHeatLossPath = findPath( 0, map.values.length - 1, {
 		next: nextPositions( map, constraints ),
 		priority: ( path: Path ) => heatLoss( map, path ),
 		signature: ( path: Path ) => directionHistory( map, path ).join(),
@@ -68,16 +63,17 @@ const minHeatLoss = (
 	.slice( 1 );
 
 	return heatLoss( map, minHeatLossPath );
-}
+};
 
 const isValidCruciblePath = ( map: HeatLossMap ) => ( path: Path ) =>
 	directionHistory( map, path ).length <= 3;
 
-const isValidUltraCruciblePath = ( map: HeatLossMap, end: Position ) => ( path: Path ) => {
+const isValidUltraCruciblePath = ( map: HeatLossMap ) => ( path: Path ) => {
 	const currentDirection = directionHistory( map, path );
 	const previousDirection = directionHistory( map, path.slice( currentDirection.length ) );
 
-	if ( path[ 0 ] === end ) {
+	// The last stretch to the end must be at least 4 units long too!
+	if ( path[ 0 ] === map.values.length - 1 ) {
 		return 4 <= currentDirection.length;
 	}
 
@@ -86,7 +82,7 @@ const isValidUltraCruciblePath = ( map: HeatLossMap, end: Position ) => ( path: 
 };
 
 export const minimumHeatLoss = ( map: HeatLossMap ) =>
-	minHeatLoss( map, 0, map.values.length - 1, isValidCruciblePath( map ) );
+	minHeatLoss( map, isValidCruciblePath( map ) );
 
 export const minimumHeatLossPartTwo = ( map: HeatLossMap ): number =>
-	minHeatLoss( map, 0, map.values.length - 1, isValidUltraCruciblePath( map, map.values.length - 1 ) );
+	minHeatLoss( map, isValidUltraCruciblePath( map ) );
