@@ -56,9 +56,10 @@ const directionHistory = ( map: HeatLossMap, path: number[], history: number[] =
 
 const minHeatLoss = ( map: HeatLossMap, constraints: CrucibleConstraints ) => {
 	const minHeatLossPath = findPath( 0, map.values.length - 1, {
-		next: nextPositions( map, constraints ),
-		priority: ( path: Path ) => heatLoss( map, path ),
-		signature: ( path: Path ) => directionHistory( map, path ).join(),
+		getNext: nextPositions( map, constraints ),
+		getNodeId: ( position: Position ) => position,
+		getNodeHistoryId: ( path: Path ) => directionHistory( map, path ).join(),
+		getPriority: ( path: Path ) => heatLoss( map, path ),
 	} )
 	.slice( 1 );
 
