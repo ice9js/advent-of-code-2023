@@ -35,38 +35,23 @@ const neighborPositions = ( map: HeatLossMap, position: Position ): Position[] =
 	( position + 1 ) % map.width ? position + 1 : -1,
 ].filter( ( number ) => 0 <= number && number < map.values.length );
 
-const getDirectionLabel = ( map: HeatLossMap, from: Position, to: Position ): String => {
-	switch ( to - from ) {
-	case -map.width:
-		return '↑';
-	case map.width:
-		return '↓';
-	case -1:
-		return '←';
-	case 1:
-		return '→';
-	}
-
-	throw new Error( `That took an unexpected turn: ${ from - to }!` );
-};
-
 const nextPositions = ( map: HeatLossMap, isValidPath: CrucibleConstraints ) =>
 	( [ currentPosition, ...path ]: Path ) =>
 		neighborPositions( map, currentPosition )
 			.filter( ( maybeNextPosition ) => isValidPath( [ maybeNextPosition, currentPosition, ...path ] ) );
 
-const directionHistory = ( map: HeatLossMap, path: number[], history: string = '' ): string => {
+const directionHistory = ( map: HeatLossMap, path: number[], history: number[] = [] ): number[] => {
 	if ( path.length < 2 ) {
 		return history;
 	}
 
-	const currentDirection = getDirectionLabel( map, path[ 1 ], path[ 0 ] );
+	const direction = path[ 0 ] - path[ 1 ];
 
-	if ( history && currentDirection !== history[ 0 ] ) {
+	if ( history.length && direction !== history[ 0 ] ) {
 		return history;
 	}
 
-	return directionHistory( map, path.slice( 1 ), currentDirection + history );
+	return directionHistory( map, path.slice( 1 ), [ direction, ...history ] );
 };
 
 const minHeatLoss = (
@@ -78,7 +63,7 @@ const minHeatLoss = (
 	const minHeatLossPath = findPath( from, to, {
 		next: nextPositions( map, constraints ),
 		priority: ( path: Path ) => heatLoss( map, path ),
-		signature: ( path: Path ) => directionHistory( map, path ),
+		signature: ( path: Path ) => directionHistory( map, path ).join(),
 	} )
 	.slice( 1 );
 
