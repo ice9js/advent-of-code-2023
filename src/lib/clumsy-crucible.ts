@@ -1,17 +1,16 @@
+import { findPath } from '../util/dijkstra';
 import { sum } from './util';
 
-type Path = number[];
+type Position = number;
+
+type Path = Position[];
 
 interface HeatLossMap {
 	values: number[];
 	width: number;
 };
 
-type Direction = '↑' | '↓' | '←' | '→';
-
-type VisitedNode = Record<string, Path>;
-
-type CrucibleStrategy = ( map: HeatLossMap, path: Path, next: number ) => boolean;
+type CrucibleConstraints = ( path: Path ) => boolean;
 
 export const parseHeatLossMap = ( input: string ): HeatLossMap => {
 	const values = input
@@ -29,21 +28,14 @@ const heatLoss = ( map: HeatLossMap, path: Path ) =>
 		.map( ( position ) => map.values[ position ] )
 		.reduce( sum, 0 );
 
-const neighbors = ( map: HeatLossMap, position: number ): number[] => [
+const neighborPositions = ( map: HeatLossMap, position: Position ): Position[] => [
 	position - map.width,
 	position + map.width,
 	position % map.width ? position - 1 : -1,
 	( position + 1 ) % map.width ? position + 1 : -1,
 ].filter( ( number ) => 0 <= number && number < map.values.length );
 
-const isValidContinuation = ( map: HeatLossMap, path: Path, next: number ): boolean =>
-		! path.includes( next ) &&
-		! ( path[ 0 ] === next - 1 && path[ 1 ] === next - 2 && path[ 2 ] === next - 3 && path[ 3 ] === next - 4 ) &&
-		! ( path[ 0 ] === next + 1 && path[ 1 ] === next + 2 && path[ 2 ] === next + 3 && path[ 3 ] === next + 4 ) &&
-		! ( path[ 0 ] === next - map.width && path[ 1 ] === next - 2 * map.width && path[ 2 ] === next - 3 * map.width && path[ 3 ] === next - 4 * map.width ) &&
-		! ( path[ 0 ] === next + map.width && path[ 1 ] === next + 2 * map.width && path[ 2 ] === next + 3 * map.width && path[ 3 ] === next + 4 * map.width );
-
-const getDirection = ( map: HeatLossMap, from: number, to: number ): Direction => {
+const getDirectionLabel = ( map: HeatLossMap, from: Position, to: Position ): String => {
 	switch ( to - from ) {
 	case -map.width:
 		return '↑';
@@ -58,109 +50,58 @@ const getDirection = ( map: HeatLossMap, from: number, to: number ): Direction =
 	throw new Error( `That took an unexpected turn: ${ from - to }!` );
 };
 
-const dirdirdir = ( map: HeatLossMap, path: Path, suffix: string = '' ): string => {
+const nextPositions = ( map: HeatLossMap, isValidPath: CrucibleConstraints ) =>
+	( [ currentPosition, ...path ]: Path ) =>
+		neighborPositions( map, currentPosition )
+			.filter( ( maybeNextPosition ) => isValidPath( [ maybeNextPosition, currentPosition, ...path ] ) );
+
+const directionHistory = ( map: HeatLossMap, path: number[], history: string = '' ): string => {
 	if ( path.length < 2 ) {
-		return suffix;
+		return history;
 	}
 
-	const current = getDirection( map, path[ 1 ], path[ 0 ] );
+	const currentDirection = getDirectionLabel( map, path[ 1 ], path[ 0 ] );
 
-	if ( suffix && current !== suffix[ 0 ] ) {
-		return suffix;
+	if ( history && currentDirection !== history[ 0 ] ) {
+		return history;
 	}
 
-	return dirdirdir( map, path.slice( 1 ), current + suffix );
+	return directionHistory( map, path.slice( 1 ), currentDirection + history );
 };
 
-const markVisited = ( map: HeatLossMap, visited: VisitedNode[], path: Path ): void => {
-	const key = dirdirdir( map, path );
+const minHeatLoss = (
+	map: HeatLossMap,
+	from: Position,
+	to: Position,
+	constraints: CrucibleConstraints
+) => {
+	const minHeatLossPath = findPath( from, to, {
+		next: nextPositions( map, constraints ),
+		priority: ( path: Path ) => heatLoss( map, path ),
+		signature: ( path: Path ) => directionHistory( map, path ),
+	} )
+	.slice( 1 );
 
-	if ( ! visited[ path[ 0 ] ] ) {
-		visited[ path[ 0 ] ] = {
-			[ key ]: path,
-		};
-
-		return;
-	}
-
-	visited[ path[ 0 ] ][ key ] = path;
-};
-
-const hasVisited = ( visited: VisitedNode[], position: number, directions: string ): boolean =>
-	!! visited[ position ] && !! visited[ position ][ directions ];
-
-const push = ( queue: Path[][], weight: number, path: Path ): void => {
-	if ( ! queue[ weight ] ) {
-		queue[ weight ] = [];
-	}
-
-	queue[ weight ].push( path );
-};
-
-const take = ( queue: Path[][] ): Path => {
-	for ( let i = 0; i < queue.length; i++ ) {
-		if ( queue[i] && queue[i].length ) {
-			return queue[i].shift()!;
-		}
-	}
-
-	return [];
-};
-
-
-const isValidContinuationExt = ( map: HeatLossMap, path: Path, next: number ): boolean => {
-	const currentDirection = dirdirdir( map, [ next, ...path ] );
-	const previousDirection = dirdirdir( map, path.slice( currentDirection.length - 1 ) );
-
-	if ( 10 < currentDirection.length ) {
-		return false;
-	}
-
-	if ( ! previousDirection ) {
-		return true;
-	}
-
-	return 4 <= previousDirection.length && previousDirection.length <= 10;
-};
-
-const shortestPath = ( map: HeatLossMap, from: number, to: number, isValidNext: CrucibleStrategy ): Path => {
-	const visited: VisitedNode[] = [];
-	const queue: Path[][] = [];
-
-	push( queue, 0, [ from ] );
-
-	while ( 0 < queue.length ) {
-		const path = take( queue );
-
-		if ( hasVisited( visited, path[ 0 ], dirdirdir( map, path ) ) ) {
-			continue;
-		}
-
-		if ( path[ 0 ] === to ) {
-			return path.reverse().slice( 1 );
-		}
-
-		markVisited( map, visited, path );
-
-		for ( let next of neighbors( map, path[ 0 ] ) ) {
-			if (
-				! isValidNext( map, path, next ) ||
-				hasVisited( visited, next, dirdirdir( map, [ next, ...path ] ) )
-			) {
-				continue;
-			}
-
-			push( queue, heatLoss( map, [ next, ...path ] ), [ next, ...path ] );
-		}
-	}
-
-	return [];
+	return heatLoss( map, minHeatLossPath );
 }
 
-export const minimumHeatLoss = ( map: HeatLossMap ): number =>
-	heatLoss( map, shortestPath( map, 0, map.values.length - 1, isValidContinuation ) );
+const isValidCruciblePath = ( map: HeatLossMap ) => ( path: Path ) =>
+	directionHistory( map, path ).length <= 3;
 
-// 904
+const isValidUltraCruciblePath = ( map: HeatLossMap, end: Position ) => ( path: Path ) => {
+	const currentDirection = directionHistory( map, path );
+	const previousDirection = directionHistory( map, path.slice( currentDirection.length ) );
+
+	if ( path[ 0 ] === end ) {
+		return 4 <= currentDirection.length;
+	}
+
+	return currentDirection.length <= 10 &&
+		( ! previousDirection.length || 4 <= previousDirection.length );
+};
+
+export const minimumHeatLoss = ( map: HeatLossMap ) =>
+	minHeatLoss( map, 0, map.values.length - 1, isValidCruciblePath( map ) );
+
 export const minimumHeatLossPartTwo = ( map: HeatLossMap ): number =>
-	heatLoss( map, shortestPath( map, 0, map.values.length - 1, isValidContinuationExt ) );
-
+	minHeatLoss( map, 0, map.values.length - 1, isValidUltraCruciblePath( map, map.values.length - 1 ) );
