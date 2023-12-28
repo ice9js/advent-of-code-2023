@@ -36,7 +36,6 @@ export const findPath = <T>(
 		visited.add( [ nodeId, history ].join() );
 
 		getNext( path )
-			.filter( ( node ) => ! path.includes( node ) )
 			.map( ( node ) => [ node ].concat( path ) )
 			.filter( ( nextPath ) => ! visited.has( [ getNodeId( nextPath[ 0 ] ), getNodeHistoryId( nextPath ) ].join() ) )
 			.forEach( ( nextPath ) => insert( queue, getPriority( nextPath ), nextPath ) );

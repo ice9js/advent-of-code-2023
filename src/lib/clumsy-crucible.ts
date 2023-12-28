@@ -1,41 +1,55 @@
 import { findPath } from '../util/dijkstra';
 
-type Position = number;
-
-type Path = Position[];
-
 interface HeatLossMap {
 	values: number[];
 	width: number;
 };
 
-type CrucibleConstraints = ( path: Path ) => boolean;
-
-export const parseHeatLossMap = ( input: string ): HeatLossMap => {
-	const values = input
-		.split( '\n' )
-		.map( ( line ) => line.split( '' ).map( ( n ) => parseInt( n, 10 ) ) );
-
-	return {
-		values: values.flat(),
-		width: values[0].length
-	};
+interface SegmentConstraints {
+	minLength: number;
+	maxLength: number;
 };
 
-const heatLoss = ( map: HeatLossMap, path: Path ) =>
+export const parseHeatLossMap = ( input: string ): HeatLossMap => ( {
+	values: input
+		.split( '\n' )
+		.map( ( line ) => line.split( '' ) )
+		.flat()
+		.map( ( n ) => parseInt( n, 10 ) ),
+	width: input.split( '\n' )[0].length
+} );
+
+const heatLoss = ( map: HeatLossMap, path: number[] ) =>
 	path.reduce( ( sum, position ) => sum + map.values[ position ], 0 );
 
-const neighborPositions = ( map: HeatLossMap, position: Position ): Position[] => [
+const isValidPath = ( map: HeatLossMap, { minLength, maxLength }: SegmentConstraints, path: number[] ) => {
+	const currentDirection = directionHistory( map, path ).length;
+	const previousDirection = directionHistory( map, path.slice( currentDirection ) ).length;
+
+	// Ensure the last segment matches the minimum length too
+	if ( path[ 0 ] === map.values.length - 1 ) {
+		return minLength <= currentDirection;
+	}
+
+	return currentDirection <= maxLength && ( ! previousDirection || minLength <= previousDirection );
+};
+
+const maybeNext = ( map: HeatLossMap, position: number ): number[] => [
 	position - map.width,
 	position + map.width,
 	position % map.width ? position - 1 : -1,
 	( position + 1 ) % map.width ? position + 1 : -1,
-].filter( ( number ) => 0 <= number && number < map.values.length );
+];
 
-const nextPositions = ( map: HeatLossMap, isValidPath: CrucibleConstraints ) =>
-	( path: Path ) =>
-		neighborPositions( map, path[ 0 ] )
-			.filter( ( maybeNextPosition ) => isValidPath( [ maybeNextPosition ].concat( path ) ) );
+const nextPositions = ( map: HeatLossMap, constraints: SegmentConstraints ) =>
+	( path: number[] ) =>
+		maybeNext( map, path[ 0 ] ).filter(
+			( position ) =>
+				0 <= position &&
+				position < map.values.length &&
+				! path.includes( position ) &&
+				isValidPath( map, constraints, [ position ].concat( path ) )
+		);
 
 const directionHistory = ( map: HeatLossMap, path: number[] ): number[] => {
 	const history: number[] = [];
@@ -51,36 +65,17 @@ const directionHistory = ( map: HeatLossMap, path: number[] ): number[] => {
 	return history;
 };
 
-const minHeatLoss = ( map: HeatLossMap, constraints: CrucibleConstraints ) => {
-	const minHeatLossPath = findPath( 0, map.values.length - 1, {
+const minHeatLossPath = ( map: HeatLossMap, constraints: SegmentConstraints ) =>
+	findPath( 0, map.values.length - 1, {
 		getNext: nextPositions( map, constraints ),
-		getNodeId: ( position: Position ) => position,
-		getNodeHistoryId: ( path: Path ) => directionHistory( map, path ).join(),
-		getPriority: ( path: Path ) => heatLoss( map, path ),
+		getNodeId: ( position: number ) => position,
+		getNodeHistoryId: ( path: number[] ) => directionHistory( map, path ).join(),
+		getPriority: ( path: number[] ) => heatLoss( map, path ),
 	} )
 	.slice( 1 );
 
-	return heatLoss( map, minHeatLossPath );
-};
-
-const isValidCruciblePath = ( map: HeatLossMap ) => ( path: Path ) =>
-	directionHistory( map, path ).length <= 3;
-
-const isValidUltraCruciblePath = ( map: HeatLossMap ) => ( path: Path ) => {
-	const currentDirection = directionHistory( map, path ).length;
-	const previousDirection = directionHistory( map, path.slice( currentDirection ) ).length;
-
-	// The last stretch to the end must be at least 4 units long too!
-	if ( path[ 0 ] === map.values.length - 1 ) {
-		return 4 <= currentDirection;
-	}
-
-	return currentDirection <= 10 &&
-		( ! previousDirection || 4 <= previousDirection );
-};
-
 export const minimumHeatLoss = ( map: HeatLossMap ) =>
-	minHeatLoss( map, isValidCruciblePath( map ) );
+	heatLoss( map, minHeatLossPath( map, { minLength: 1, maxLength: 3 } ) );
 
 export const minimumHeatLossPartTwo = ( map: HeatLossMap ): number =>
-	minHeatLoss( map, isValidUltraCruciblePath( map ) );
+	heatLoss( map, minHeatLossPath( map, { minLength: 4, maxLength: 10 } ) );
